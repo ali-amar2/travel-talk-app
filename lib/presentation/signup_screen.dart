@@ -1,4 +1,8 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:travel_talk/features/auth/data/repositories/user_repository.dart';
+import 'package:travel_talk/features/auth/data/services/firebase_auth_service.dart';
+import 'package:travel_talk/features/auth/presentation/utils/auth_error_message.dart';
 import 'package:travel_talk/widgets/animated_background.dart';
 
 class SignupScreen extends StatefulWidget {
@@ -18,8 +22,13 @@ class _SignupScreenState extends State<SignupScreen>
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
 
+  final FirebaseAuthService _authService = FirebaseAuthService();
+  final UserRepository _userRepository = UserRepository();
+
   late AnimationController _animCtrl;
   late Animation<double> _fadeAnim;
+
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -31,30 +40,73 @@ class _SignupScreenState extends State<SignupScreen>
     );
 
     _fadeAnim = CurvedAnimation(parent: _animCtrl, curve: Curves.easeIn);
-
     _animCtrl.forward();
   }
 
   @override
   void dispose() {
     _animCtrl.dispose();
-
     _nameController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
-
     super.dispose();
   }
 
-  void _signup() {
-    if (_formKey.currentState!.validate()) {
+  Future<void> _signup() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      final credential = await _authService.signUpWithEmailAndPassword(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+      );
+
+      final user = credential.user;
+
+      if (user == null) {
+        throw Exception('User creation failed');
+      }
+
+      await user.updateDisplayName(_nameController.text.trim());
+
+      await _userRepository.createUser(
+        uid: user.uid,
+        name: _nameController.text.trim(),
+        email: _emailController.text.trim(),
+        phone: _phoneController.text.trim(),
+      );
+
+      await _authService.signOut();
+
+      if (!mounted) return;
+
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Account Created Successfully")),
+        const SnackBar(
+          content: Text('Account created successfully. Please login.'),
+        ),
       );
 
       Navigator.pop(context);
+    } on FirebaseAuthException catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(mapFirebaseAuthError(e.code))));
+    } catch (_) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Unexpected error occurred')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -83,10 +135,7 @@ class _SignupScreenState extends State<SignupScreen>
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-
                       const SizedBox(height: 40),
-
-                      // Name
                       TextFormField(
                         controller: _nameController,
                         style: const TextStyle(color: Colors.white),
@@ -104,16 +153,15 @@ class _SignupScreenState extends State<SignupScreen>
                             borderSide: BorderSide.none,
                           ),
                         ),
-                        validator: (value) => value != null && value.length >= 3
+                        validator: (value) =>
+                            value != null && value.trim().length >= 3
                             ? null
                             : "Enter your name",
                       ),
-
                       const SizedBox(height: 20),
-
-                      // Email
                       TextFormField(
                         controller: _emailController,
+                        keyboardType: TextInputType.emailAddress,
                         style: const TextStyle(color: Colors.white),
                         decoration: InputDecoration(
                           labelText: "Email",
@@ -134,10 +182,7 @@ class _SignupScreenState extends State<SignupScreen>
                             ? null
                             : "Enter valid email",
                       ),
-
                       const SizedBox(height: 20),
-
-                      // Phone
                       TextFormField(
                         controller: _phoneController,
                         keyboardType: TextInputType.phone,
@@ -157,14 +202,11 @@ class _SignupScreenState extends State<SignupScreen>
                           ),
                         ),
                         validator: (value) =>
-                            value != null && value.length >= 10
+                            value != null && value.trim().length >= 10
                             ? null
                             : "Enter valid phone",
                       ),
-
                       const SizedBox(height: 20),
-
-                      // Password
                       TextFormField(
                         controller: _passwordController,
                         obscureText: true,
@@ -187,10 +229,7 @@ class _SignupScreenState extends State<SignupScreen>
                             ? null
                             : "Password must be at least 6 chars",
                       ),
-
                       const SizedBox(height: 20),
-
-                      // Confirm Password
                       TextFormField(
                         controller: _confirmPasswordController,
                         obscureText: true,
@@ -213,30 +252,35 @@ class _SignupScreenState extends State<SignupScreen>
                             ? null
                             : "Passwords do not match",
                       ),
-
                       const SizedBox(height: 30),
-
-                      ElevatedButton(
-                        onPressed: _signup,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: accent,
-                          foregroundColor: Colors.black,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: _isLoading ? null : _signup,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: accent,
+                            foregroundColor: Colors.black,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 15),
                           ),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 90,
-                            vertical: 15,
-                          ),
-                        ),
-                        child: const Text(
-                          "Sign Up",
-                          style: TextStyle(fontWeight: FontWeight.bold),
+                          child: _isLoading
+                              ? const SizedBox(
+                                  width: 22,
+                                  height: 22,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2.5,
+                                    color: Colors.black,
+                                  ),
+                                )
+                              : const Text(
+                                  "Sign Up",
+                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                ),
                         ),
                       ),
-
-                      const SizedBox(),
-
+                      const SizedBox(height: 8),
                       TextButton(
                         onPressed: () {
                           Navigator.pop(context);

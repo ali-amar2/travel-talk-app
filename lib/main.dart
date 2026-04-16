@@ -1,35 +1,19 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'data/onboarding_repository.dart';
-import 'domain/onboarding_usecase.dart';
-import 'presentation/onboarding_screen.dart';
+
+import 'firebase_options.dart';
 import 'presentation/login_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  final onboardingUseCase = OnboardingUseCase(
-    repository: OnboardingRepository(),
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  final isFirstTime = await onboardingUseCase.isFirstTime();
-
-  runApp(
-    TravelTalkApp(
-      startWithOnboarding: isFirstTime,
-      onboardingUseCase: onboardingUseCase,
-    ),
-  );
+  runApp(const TravelTalkApp());
 }
 
 class TravelTalkApp extends StatelessWidget {
-  final bool startWithOnboarding;
-  final OnboardingUseCase onboardingUseCase;
-
-  const TravelTalkApp({
-    super.key,
-    required this.startWithOnboarding,
-    required this.onboardingUseCase,
-  });
+  const TravelTalkApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -41,9 +25,7 @@ class TravelTalkApp extends StatelessWidget {
         fontFamily: 'Roboto',
         scaffoldBackgroundColor: const Color(0xFFF4F5F7),
       ),
-      home: startWithOnboarding
-          ? OnboardingScreen(useCase: onboardingUseCase)
-          : const LoginScreen(),
+      home: const LoginScreen(),
     );
   }
 }

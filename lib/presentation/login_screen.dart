@@ -1,7 +1,12 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'signup_screen.dart';
-import 'package:travel_talk/widgets/animated_background.dart';
+import 'package:travel_talk/features/auth/data/repositories/user_repository.dart';
+import 'package:travel_talk/features/auth/data/services/firebase_auth_service.dart';
 import 'package:travel_talk/features/home/presentation/screens/home_screen.dart';
+import 'package:travel_talk/widgets/animated_background.dart';
+
+import 'onboarding_screen.dart';
+import 'signup_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -16,8 +21,13 @@ class _LoginScreenState extends State<LoginScreen>
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
 
+  final FirebaseAuthService _authService = FirebaseAuthService();
+  final UserRepository _userRepository = UserRepository();
+
   late AnimationController _animCtrl;
   late Animation<double> _fadeAnim;
+
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -38,16 +48,69 @@ class _LoginScreenState extends State<LoginScreen>
     super.dispose();
   }
 
-  void _login() {
-    if (_formKey.currentState!.validate()) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Login successful')));
+  Future<void> _login() async {
+    if (!_formKey.currentState!.validate()) return;
 
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const HomeScreen()),
+    setState(() => _isLoading = true);
+
+    try {
+      final credential = await _authService.signInWithEmailAndPassword(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
       );
+
+      final user = credential.user;
+
+      if (user == null) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Invalid email or password')),
+        );
+        return;
+      }
+
+      final userData = await _userRepository.getUserById(user.uid);
+
+      if (userData == null) {
+        await _authService.signOut();
+
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Invalid email or password')),
+        );
+        return;
+      }
+
+      final bool onboardingCompleted =
+          (userData['onboardingCompleted'] as bool?) ?? false;
+
+      if (!mounted) return;
+
+      if (onboardingCompleted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const HomeScreen()),
+        );
+      } else {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const OnboardingScreen()),
+        );
+      }
+    } on FirebaseAuthException {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Invalid email or password')),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Something went wrong, please try again')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -77,9 +140,9 @@ class _LoginScreenState extends State<LoginScreen>
                         ),
                       ),
                       const SizedBox(height: 40),
-
                       TextFormField(
                         controller: _emailController,
+                        keyboardType: TextInputType.emailAddress,
                         style: const TextStyle(color: Colors.white),
                         decoration: InputDecoration(
                           labelText: "Email",
@@ -101,7 +164,6 @@ class _LoginScreenState extends State<LoginScreen>
                             : 'Enter a valid email',
                       ),
                       const SizedBox(height: 20),
-
                       TextFormField(
                         controller: _passwordController,
                         obscureText: true,
@@ -125,28 +187,35 @@ class _LoginScreenState extends State<LoginScreen>
                             : 'Password must be at least 6 chars',
                       ),
                       const SizedBox(height: 30),
-
-                      ElevatedButton(
-                        onPressed: _login,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: accent,
-                          foregroundColor: Colors.black,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: _isLoading ? null : _login,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: accent,
+                            foregroundColor: Colors.black,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 15),
+                            elevation: 5,
                           ),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 100,
-                            vertical: 15,
-                          ),
-                          elevation: 5,
-                        ),
-                        child: const Text(
-                          "Login",
-                          style: TextStyle(fontWeight: FontWeight.bold),
+                          child: _isLoading
+                              ? const SizedBox(
+                                  width: 22,
+                                  height: 22,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2.5,
+                                    color: Colors.black,
+                                  ),
+                                )
+                              : const Text(
+                                  "Login",
+                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                ),
                         ),
                       ),
                       const SizedBox(height: 8),
-
                       TextButton(
                         onPressed: () => Navigator.push(
                           context,

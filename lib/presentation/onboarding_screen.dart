@@ -1,10 +1,10 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import '../domain/onboarding_usecase.dart';
-import 'login_screen.dart';
+import 'package:travel_talk/features/auth/data/repositories/user_repository.dart';
+import 'package:travel_talk/features/home/presentation/screens/home_screen.dart';
 
 class OnboardingScreen extends StatefulWidget {
-  final OnboardingUseCase useCase;
-  const OnboardingScreen({super.key, required this.useCase});
+  const OnboardingScreen({super.key});
 
   @override
   State<OnboardingScreen> createState() => _OnboardingScreenState();
@@ -13,6 +13,9 @@ class OnboardingScreen extends StatefulWidget {
 class _OnboardingScreenState extends State<OnboardingScreen> {
   int _currentPage = 0;
   final PageController _controller = PageController();
+  final UserRepository _userRepository = UserRepository();
+
+  bool _isLoading = false;
 
   List<Widget> _pages() => [
     _buildPage(
@@ -28,26 +31,31 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     ),
   ];
 
+  bool get _isLastPage => _currentPage == _pages().length - 1;
+
   Widget _buildPage({
     required String title,
     required String description,
     String? image,
   }) {
+    final bool hasImage = image != null;
+
     return Container(
       decoration: BoxDecoration(
-        image: image != null
+        color: Colors.white,
+        image: hasImage
             ? DecorationImage(image: AssetImage(image), fit: BoxFit.cover)
             : null,
-        color: Colors.white,
       ),
       child: Container(
+        width: double.infinity,
+        height: double.infinity,
         padding: const EdgeInsets.all(24),
-        decoration: image != null
+        decoration: hasImage
             ? BoxDecoration(color: Colors.black.withOpacity(0.4))
             : null,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Text(
               title,
@@ -55,7 +63,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               style: TextStyle(
                 fontSize: 28,
                 fontWeight: FontWeight.bold,
-                color: image != null ? Colors.white : Colors.black87,
+                color: hasImage ? Colors.white : Colors.black87,
               ),
             ),
             const SizedBox(height: 20),
@@ -64,7 +72,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 18,
-                color: image != null ? Colors.white70 : Colors.black54,
+                height: 1.5,
+                color: hasImage ? Colors.white70 : Colors.black54,
               ),
             ),
           ],
@@ -73,11 +82,46 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     );
   }
 
+  Future<void> _completeOnboarding() async {
+    if (_isLoading) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      final currentUser = FirebaseAuth.instance.currentUser;
+
+      if (currentUser == null) {
+        if (!mounted) return;
+        Navigator.pop(context);
+        return;
+      }
+
+      await _userRepository.completeOnboarding(currentUser.uid);
+
+      if (!mounted) return;
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const HomeScreen()),
+      );
+    } catch (_) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to complete onboarding')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
   void _nextPage() {
-    if (_currentPage < _pages().length - 1) {
+    if (!_isLastPage) {
       _controller.nextPage(
         duration: const Duration(milliseconds: 300),
-        curve: Curves.easeIn,
+        curve: Curves.easeInOut,
       );
     } else {
       _completeOnboarding();
@@ -88,56 +132,103 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     _completeOnboarding();
   }
 
-  void _completeOnboarding() async {
-    await widget.useCase.completeOnboarding();
-    if (context.mounted) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const LoginScreen()),
-      );
-    }
+  Widget _buildDotsIndicator() {
+    final pagesCount = _pages().length;
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: List.generate(
+        pagesCount,
+        (index) => AnimatedContainer(
+          duration: const Duration(milliseconds: 250),
+          margin: const EdgeInsets.symmetric(horizontal: 4),
+          width: _currentPage == index ? 22 : 8,
+          height: 8,
+          decoration: BoxDecoration(
+            color: _currentPage == index
+                ? Colors.blue
+                : Colors.grey.withOpacity(0.4),
+            borderRadius: BorderRadius.circular(20),
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final pages = _pages();
+    final bool isImagePage = _currentPage == 1;
+
     return Scaffold(
       body: Stack(
         children: [
           PageView(
             controller: _controller,
-            onPageChanged: (index) => setState(() => _currentPage = index),
-            children: _pages(),
+            onPageChanged: (index) {
+              setState(() {
+                _currentPage = index;
+              });
+            },
+            children: pages,
           ),
-
-          /// Skip
           Positioned(
+            top: 45,
             right: 20,
-            top: 40,
             child: TextButton(
-              onPressed: _skip,
-              child: const Text(
+              onPressed: _isLoading ? null : _skip,
+              child: Text(
                 "Skip",
-                style: TextStyle(color: Colors.black87),
+                style: TextStyle(
+                  color: isImagePage ? Colors.white : Colors.black87,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
           ),
-
-          /// Next Button
+          Positioned(
+            bottom: 110,
+            left: 0,
+            right: 0,
+            child: _buildDotsIndicator(),
+          ),
           Positioned(
             bottom: 40,
             right: 20,
             child: ElevatedButton(
-              onPressed: _nextPage,
+              onPressed: _isLoading ? null : _nextPage,
               style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue,
+                foregroundColor: Colors.white,
                 shape: const StadiumBorder(),
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 12,
+                  horizontal: 28,
+                  vertical: 14,
                 ),
               ),
-              child: Text(
-                _currentPage == _pages().length - 1 ? "Start" : "Next",
-              ),
+              child: _isLoading
+                  ? const SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.5,
+                        color: Colors.white,
+                      ),
+                    )
+                  : Text(
+                      _isLastPage ? "Start" : "Next",
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
             ),
           ),
         ],

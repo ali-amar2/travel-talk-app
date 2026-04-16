@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "629133287444",
+    "project_id": "travel-talk-48167",
+    "storage_bucket": "travel-talk-48167.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:629133287444:android:79a72ef75f171ecbefc701",
+        "android_client_info": {
+          "package_name": "com.example.travel_talk"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyByTsmDQxAcOgYIV7y3KeSBLgbovtIbrts"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
