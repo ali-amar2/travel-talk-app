@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'signup_screen.dart';
 import 'package:travel_talk/widgets/animated_background.dart';
+import 'package:travel_talk/features/home/presentation/screens/home_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -42,14 +43,18 @@ class _LoginScreenState extends State<LoginScreen>
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Login successful')));
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const HomeScreen()),
+      );
     }
   }
 
   @override
-  @override
   Widget build(BuildContext context) {
-    final primary = const Color(0xFF00B4D8); // أزرق بحري
-    final accent = const Color(0xFFFFC300); // أصفر شمس
+    final primary = const Color(0xFF00B4D8);
+    final accent = const Color(0xFFFFC300);
 
     return Scaffold(
       body: AnimatedBackground(
@@ -72,7 +77,7 @@ class _LoginScreenState extends State<LoginScreen>
                         ),
                       ),
                       const SizedBox(height: 40),
-                      // Email
+
                       TextFormField(
                         controller: _emailController,
                         style: const TextStyle(color: Colors.white),
@@ -96,7 +101,7 @@ class _LoginScreenState extends State<LoginScreen>
                             : 'Enter a valid email',
                       ),
                       const SizedBox(height: 20),
-                      // Password
+
                       TextFormField(
                         controller: _passwordController,
                         obscureText: true,
@@ -120,6 +125,7 @@ class _LoginScreenState extends State<LoginScreen>
                             : 'Password must be at least 6 chars',
                       ),
                       const SizedBox(height: 30),
+
                       ElevatedButton(
                         onPressed: _login,
                         style: ElevatedButton.styleFrom(
@@ -139,7 +145,8 @@ class _LoginScreenState extends State<LoginScreen>
                           style: TextStyle(fontWeight: FontWeight.bold),
                         ),
                       ),
-                      const SizedBox(),
+                      const SizedBox(height: 8),
+
                       TextButton(
                         onPressed: () => Navigator.push(
                           context,

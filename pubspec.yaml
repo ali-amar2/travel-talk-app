@@ -23,10 +23,7 @@ flutter:
   uses-material-design: true
 
   assets:
-    - assets/images/images.jpg
-    - assets/images/aaaa.jpg
-    - assets/images/pyramids.jpg
-    - assets/images/aa.webp
+    - assets/images/
 
 flutter_launcher_icons:
   android: true

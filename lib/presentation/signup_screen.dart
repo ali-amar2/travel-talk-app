@@ -54,7 +54,7 @@ class _SignupScreenState extends State<SignupScreen>
         const SnackBar(content: Text("Account Created Successfully")),
       );
 
-      Navigator.pop(context); // يرجع للـ Login
+      Navigator.pop(context);
     }
   }
 

@@ -6,9 +6,11 @@ import 'presentation/login_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
   final onboardingUseCase = OnboardingUseCase(
     repository: OnboardingRepository(),
   );
+
   final isFirstTime = await onboardingUseCase.isFirstTime();
 
   runApp(
@@ -33,8 +35,12 @@ class TravelTalkApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: "Travel Talk",
-      theme: ThemeData(primarySwatch: Colors.blue, fontFamily: 'Roboto'),
+      title: 'Travel Talk',
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+        fontFamily: 'Roboto',
+        scaffoldBackgroundColor: const Color(0xFFF4F5F7),
+      ),
       home: startWithOnboarding
           ? OnboardingScreen(useCase: onboardingUseCase)
           : const LoginScreen(),

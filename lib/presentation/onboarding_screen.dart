@@ -43,9 +43,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       child: Container(
         padding: const EdgeInsets.all(24),
         decoration: image != null
-            ? BoxDecoration(
-                color: Colors.black.withOpacity(0.4), // overlay عشان النص يظهر
-              )
+            ? BoxDecoration(color: Colors.black.withOpacity(0.4))
             : null,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
