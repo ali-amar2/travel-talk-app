@@ -2,10 +2,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:travel_talk/features/auth/data/repositories/user_repository.dart';
 import 'package:travel_talk/features/auth/data/services/firebase_auth_service.dart';
-import 'package:travel_talk/features/home/presentation/screens/home_screen.dart';
+import 'package:travel_talk/features/layout/main_layout.dart';
+import 'package:travel_talk/presentation/onboarding_screen.dart';
 import 'package:travel_talk/widgets/animated_background.dart';
 
-import 'onboarding_screen.dart';
 import 'signup_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -51,6 +51,7 @@ class _LoginScreenState extends State<LoginScreen>
   Future<void> _login() async {
     if (!_formKey.currentState!.validate()) return;
 
+    FocusScope.of(context).unfocus();
     setState(() => _isLoading = true);
 
     try {
@@ -89,7 +90,7 @@ class _LoginScreenState extends State<LoginScreen>
       if (onboardingCompleted) {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (_) => const HomeScreen()),
+          MaterialPageRoute(builder: (_) => const MainLayout()),
         );
       } else {
         Navigator.pushReplacement(
@@ -158,10 +159,15 @@ class _LoginScreenState extends State<LoginScreen>
                             borderSide: BorderSide.none,
                           ),
                         ),
-                        validator: (value) =>
-                            value != null && value.contains('@')
-                            ? null
-                            : 'Enter a valid email',
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Email is required';
+                          }
+                          if (!value.contains('@')) {
+                            return 'Enter a valid email';
+                          }
+                          return null;
+                        },
                       ),
                       const SizedBox(height: 20),
                       TextFormField(
@@ -182,9 +188,15 @@ class _LoginScreenState extends State<LoginScreen>
                             borderSide: BorderSide.none,
                           ),
                         ),
-                        validator: (value) => value != null && value.length >= 6
-                            ? null
-                            : 'Password must be at least 6 chars',
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Password is required';
+                          }
+                          if (value.length < 6) {
+                            return 'Password must be at least 6 chars';
+                          }
+                          return null;
+                        },
                       ),
                       const SizedBox(height: 30),
                       SizedBox(
@@ -217,12 +229,14 @@ class _LoginScreenState extends State<LoginScreen>
                       ),
                       const SizedBox(height: 8),
                       TextButton(
-                        onPressed: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const SignupScreen(),
-                          ),
-                        ),
+                        onPressed: _isLoading
+                            ? null
+                            : () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const SignupScreen(),
+                                ),
+                              ),
                         child: const Text(
                           "Don't have an account? Sign up",
                           style: TextStyle(color: Colors.white),

@@ -16,6 +16,6 @@ String mapFirebaseAuthError(String code) {
     case 'too-many-requests':
       return 'Too many attempts. Please try again later.';
     default:
-      return 'Something went wrong. Please try again.';
+      return 'Somet hing went wrong. Please try again.';
   }
 }

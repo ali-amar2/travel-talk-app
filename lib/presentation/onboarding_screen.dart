@@ -1,7 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:travel_talk/features/auth/data/repositories/user_repository.dart';
-import 'package:travel_talk/features/home/presentation/screens/home_screen.dart';
+import 'package:travel_talk/features/layout/main_layout.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -102,7 +102,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => const HomeScreen()),
+        MaterialPageRoute(builder: (_) => const MainLayout()),
       );
     } catch (_) {
       if (!mounted) return;

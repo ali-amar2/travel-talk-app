@@ -20,36 +20,38 @@ class CustomBottomNavBar extends StatelessWidget {
       Icons.person_outline_rounded,
     ];
 
-    return Container(
-      height: 74,
-      margin: const EdgeInsets.symmetric(horizontal: 22),
-      padding: const EdgeInsets.symmetric(horizontal: 18),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.shadow,
-            blurRadius: 18,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: List.generate(items.length, (index) {
-          final bool isSelected = currentIndex == index;
-          return GestureDetector(
-            onTap: () => onTap(index),
-            child: Icon(
-              items[index],
-              size: 24,
-              color: isSelected
-                  ? AppColors.primary
-                  : AppColors.textSecondary.withOpacity(0.7),
+    return SafeArea(
+      minimum: const EdgeInsets.only(left: 22, right: 22, bottom: 12),
+      child: Container(
+        height: 74,
+        padding: const EdgeInsets.symmetric(horizontal: 18),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.shadow,
+              blurRadius: 18,
+              offset: const Offset(0, 8),
             ),
-          );
-        }),
+          ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: List.generate(items.length, (index) {
+            final bool isSelected = currentIndex == index;
+            return GestureDetector(
+              onTap: () => onTap(index),
+              child: Icon(
+                items[index],
+                size: 24,
+                color: isSelected
+                    ? AppColors.primary
+                    : AppColors.textSecondary.withOpacity(0.7),
+              ),
+            );
+          }),
+        ),
       ),
     );
   }

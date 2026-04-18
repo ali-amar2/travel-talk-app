@@ -6,7 +6,6 @@ import '../../domain/entities/home_data.dart';
 import '../../domain/usecases/get_home_data_usecase.dart';
 import '../widgets/category_chip_item.dart';
 import '../widgets/community_post_card.dart';
-import '../widgets/custom_bottom_nav_bar.dart';
 import '../widgets/destination_card.dart';
 import '../widgets/home_header.dart';
 import '../widgets/home_search_bar.dart';
@@ -22,7 +21,6 @@ class _HomeScreenState extends State<HomeScreen> {
   late final GetHomeDataUseCase _getHomeDataUseCase;
   HomeData? _homeData;
   bool _isLoading = true;
-  int _bottomNavIndex = 0;
 
   @override
   void initState() {
@@ -147,46 +145,13 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      extendBody: true,
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      floatingActionButton: Container(
-        width: 68,
-        height: 68,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.secondary.withOpacity(0.35),
-              blurRadius: 20,
-              offset: const Offset(0, 10),
-            ),
-          ],
-        ),
-        child: FloatingActionButton(
-          elevation: 0,
-          backgroundColor: AppColors.secondary,
-          onPressed: () {},
-          child: const Icon(Icons.add, size: 30, color: Colors.white),
-        ),
-      ),
-      bottomNavigationBar: Padding(
-        padding: const EdgeInsets.only(bottom: 16),
-        child: CustomBottomNavBar(
-          currentIndex: _bottomNavIndex,
-          onTap: (index) {
-            setState(() {
-              _bottomNavIndex = index;
-            });
-          },
-        ),
-      ),
       body: SafeArea(
         child: _isLoading
             ? const Center(child: CircularProgressIndicator())
             : _homeData == null
             ? const Center(child: Text('Failed to load data'))
             : Padding(
-                padding: const EdgeInsets.fromLTRB(20, 12, 20, 110),
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 10),
                 child: SingleChildScrollView(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
