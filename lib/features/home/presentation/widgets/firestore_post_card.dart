@@ -1,15 +1,25 @@
 import 'dart:io';
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:travel_talk/features/auth/data/repositories/user_repository.dart';
+import 'package:travel_talk/features/posts/data/repositories/post_repository.dart';
 import 'package:travel_talk/features/posts/domain/entities/user_post.dart';
 
 import '../../../../core/theme/app_colors.dart';
 
-class FirestorePostCard extends StatelessWidget {
+class FirestorePostCard extends StatefulWidget {
   final UserPost post;
 
   const FirestorePostCard({super.key, required this.post});
+
+  @override
+  State<FirestorePostCard> createState() => _FirestorePostCardState();
+}
+
+class _FirestorePostCardState extends State<FirestorePostCard> {
+  final PostRepository _postRepository = PostRepository();
+  bool _isLiking = false;
 
   String _formatTimeAgo(DateTime? dateTime) {
     if (dateTime == null) return 'Just now';
@@ -24,12 +34,45 @@ class FirestorePostCard extends StatelessWidget {
     return '${dateTime.day}/${dateTime.month}/${dateTime.year}';
   }
 
+  Future<void> _toggleLike() async {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null || _isLiking) return;
+
+    setState(() => _isLiking = true);
+
+    try {
+      await _postRepository.toggleLike(
+        post: widget.post,
+        userId: currentUser.uid,
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isLiking = false);
+      }
+    }
+  }
+
+  Future<void> _likeOnDoubleTap() async {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null || _isLiking) return;
+
+    final isLiked = await _postRepository.isPostLiked(
+      postId: widget.post.id,
+      userId: currentUser.uid,
+    );
+
+    if (!isLiked) {
+      await _toggleLike();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final userRepository = UserRepository();
+    final currentUser = FirebaseAuth.instance.currentUser;
 
     return FutureBuilder<Map<String, dynamic>?>(
-      future: userRepository.getUserById(post.userId),
+      future: userRepository.getUserById(widget.post.userId),
       builder: (context, snapshot) {
         final userData = snapshot.data;
 
@@ -64,18 +107,29 @@ class FirestorePostCard extends StatelessWidget {
               _PostHeader(
                 userName: userName,
                 photoUrl: photoUrl,
-                timeAgo: _formatTimeAgo(post.createdAt),
+                timeAgo: _formatTimeAgo(widget.post.createdAt),
               ),
               const SizedBox(height: 14),
-              _PostLocationChip(location: location),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  _PostLocationChip(location: location),
+                  if (widget.post.category.trim().isNotEmpty)
+                    _PostCategoryChip(category: widget.post.category),
+                ],
+              ),
               const SizedBox(height: 14),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(20),
-                child: _buildPostImage(),
+              GestureDetector(
+                onDoubleTap: _likeOnDoubleTap,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(20),
+                  child: _buildPostImage(),
+                ),
               ),
               const SizedBox(height: 14),
               Text(
-                post.description,
+                widget.post.description,
                 style: const TextStyle(
                   fontSize: 14,
                   height: 1.6,
@@ -84,7 +138,12 @@ class FirestorePostCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 16),
-              const _PostActions(),
+              _PostActions(
+                postId: widget.post.id,
+                userId: currentUser?.uid,
+                onLikeTap: _toggleLike,
+                repository: _postRepository,
+              ),
             ],
           ),
         );
@@ -93,7 +152,7 @@ class FirestorePostCard extends StatelessWidget {
   }
 
   Widget _buildPostImage() {
-    if (post.imagePath.isEmpty) {
+    if (widget.post.imagePath.isEmpty) {
       return Container(
         width: double.infinity,
         height: 180,
@@ -108,7 +167,7 @@ class FirestorePostCard extends StatelessWidget {
       );
     }
 
-    final file = File(post.imagePath);
+    final file = File(widget.post.imagePath);
 
     return Image.file(
       file,
@@ -181,11 +240,6 @@ class _PostHeader extends StatelessWidget {
             ],
           ),
         ),
-        const Icon(
-          Icons.bookmark_border_rounded,
-          color: AppColors.textSecondary,
-          size: 22,
-        ),
       ],
     );
   }
@@ -230,42 +284,95 @@ class _PostLocationChip extends StatelessWidget {
   }
 }
 
-class _PostActions extends StatelessWidget {
-  const _PostActions();
+class _PostCategoryChip extends StatelessWidget {
+  final String category;
+
+  const _PostCategoryChip({required this.category});
 
   @override
   Widget build(BuildContext context) {
-    return const Row(
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF4E5),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        category,
+        style: const TextStyle(
+          fontSize: 12,
+          color: Color(0xFFB26A00),
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+}
+
+class _PostActions extends StatelessWidget {
+  final String postId;
+  final String? userId;
+  final VoidCallback onLikeTap;
+  final PostRepository repository;
+
+  const _PostActions({
+    required this.postId,
+    required this.userId,
+    required this.onLikeTap,
+    required this.repository,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (userId == null) {
+      return const SizedBox.shrink();
+    }
+
+    return Row(
       children: [
-        Icon(
-          Icons.favorite_border_rounded,
+        StreamBuilder<bool>(
+          stream: repository.watchIsPostLiked(postId: postId, userId: userId!),
+          builder: (context, likedSnapshot) {
+            final isLiked = likedSnapshot.data ?? false;
+
+            return InkWell(
+              onTap: onLikeTap,
+              borderRadius: BorderRadius.circular(30),
+              child: Row(
+                children: [
+                  Icon(
+                    isLiked
+                        ? Icons.favorite_rounded
+                        : Icons.favorite_border_rounded,
+                    size: 22,
+                    color: isLiked ? Colors.red : AppColors.textSecondary,
+                  ),
+                  const SizedBox(width: 6),
+                  StreamBuilder<int>(
+                    stream: repository.watchLikesCount(postId),
+                    builder: (context, countSnapshot) {
+                      final likesCount = countSnapshot.data ?? 0;
+
+                      return Text(
+                        '$likesCount',
+                        style: const TextStyle(
+                          color: AppColors.textSecondary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+        const Spacer(),
+        const Icon(
+          Icons.share_outlined,
           size: 20,
           color: AppColors.textSecondary,
         ),
-        SizedBox(width: 6),
-        Text(
-          '0',
-          style: TextStyle(
-            color: AppColors.textSecondary,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        SizedBox(width: 20),
-        Icon(
-          Icons.mode_comment_outlined,
-          size: 20,
-          color: AppColors.textSecondary,
-        ),
-        SizedBox(width: 6),
-        Text(
-          '0',
-          style: TextStyle(
-            color: AppColors.textSecondary,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        Spacer(),
-        Icon(Icons.share_outlined, size: 20, color: AppColors.textSecondary),
       ],
     );
   }

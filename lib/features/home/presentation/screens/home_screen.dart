@@ -1,17 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:travel_talk/features/posts/data/repositories/post_repository.dart';
 import 'package:travel_talk/features/posts/domain/entities/user_post.dart';
-
 import '../../../../core/theme/app_colors.dart';
 import '../../data/home_repository.dart';
-import '../../domain/entities/category_item.dart';
 import '../../domain/entities/home_data.dart';
 import '../../domain/usecases/get_home_data_usecase.dart';
-import '../widgets/category_chip_item.dart';
 import '../widgets/destination_card.dart';
 import '../widgets/firestore_post_card.dart';
 import '../widgets/home_header.dart';
-import '../widgets/home_search_bar.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -26,6 +22,17 @@ class _HomeScreenState extends State<HomeScreen> {
 
   HomeData? _homeData;
   bool _isLoading = true;
+
+  final List<String> _postCategories = const [
+    'All',
+    'Beach',
+    'Safari',
+    'Cultural & Historical',
+    'Medical & Wellness',
+    'Entertainment',
+  ];
+
+  String _selectedPostCategory = 'All';
 
   @override
   void initState() {
@@ -44,89 +51,152 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  void _selectCategory(int selectedIndex) {
-    if (_homeData == null) return;
-
-    final updatedCategories = _homeData!.categories.asMap().entries.map((
-      entry,
-    ) {
-      final index = entry.key;
-      final item = entry.value;
-      return item.copyWith(isSelected: index == selectedIndex);
-    }).toList();
-
+  void _selectPostCategory(String category) {
     setState(() {
-      _homeData = HomeData(
-        categories: updatedCategories,
-        trendingDestinations: _homeData!.trendingDestinations,
-        communityDestinations: _homeData!.communityDestinations,
-        communityPosts: _homeData!.communityPosts,
-      );
+      _selectedPostCategory = category;
     });
   }
 
   Widget _buildSectionTitle({
     required String title,
+    String? subtitle,
     String? actionText,
     VoidCallback? onActionTap,
   }) {
-    return Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(
-          child: Text(
-            title,
-            style: const TextStyle(
-              fontSize: 26,
-              fontWeight: FontWeight.w800,
-              color: AppColors.textPrimary,
-            ),
-          ),
-        ),
-        if (actionText != null)
-          GestureDetector(
-            onTap: onActionTap,
-            child: Text(
-              actionText,
-              style: const TextStyle(
-                color: AppColors.primary,
-                fontWeight: FontWeight.w700,
-                fontSize: 14,
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.textPrimary,
+                ),
               ),
             ),
+            if (actionText != null)
+              GestureDetector(
+                onTap: onActionTap,
+                child: Text(
+                  actionText,
+                  style: const TextStyle(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+          ],
+        ),
+        if (subtitle != null) ...[
+          const SizedBox(height: 6),
+          Text(
+            subtitle,
+            style: const TextStyle(
+              fontSize: 14,
+              color: AppColors.textSecondary,
+              fontWeight: FontWeight.w500,
+            ),
           ),
+        ],
       ],
     );
   }
 
-  Widget _buildCategories(List<CategoryItem> categories) {
-    return SizedBox(
-      height: 52,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: categories.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 12),
-        itemBuilder: (context, index) {
-          return CategoryChipItem(
-            item: categories[index],
-            onTap: () => _selectCategory(index),
-          );
-        },
+  Widget _buildHeroIntro() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [const Color(0xFF1296DB).withOpacity(0.12), Colors.white],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: const Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Discover Egypt',
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.w800,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          SizedBox(height: 8),
+          Text(
+            'Explore iconic destinations, hidden gems, and authentic local experiences across Egypt.',
+            style: TextStyle(
+              fontSize: 14,
+              height: 1.6,
+              color: AppColors.textSecondary,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildTrendingSection(HomeData data) {
     return SizedBox(
-      height: 250,
+      height: 265,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: data.trendingDestinations.length,
         separatorBuilder: (_, __) => const SizedBox(width: 14),
         itemBuilder: (context, index) {
           final item = data.trendingDestinations[index];
-          final width = index == 0 ? 220.0 : 150.0;
+          return DestinationCard(destination: item, width: 240, height: 265);
+        },
+      ),
+    );
+  }
 
-          return DestinationCard(destination: item, width: width, height: 250);
+  Widget _buildPostFilterCategories() {
+    return SizedBox(
+      height: 44,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: _postCategories.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 10),
+        itemBuilder: (context, index) {
+          final category = _postCategories[index];
+          final isSelected = _selectedPostCategory == category;
+
+          return GestureDetector(
+            onTap: () => _selectPostCategory(category),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              decoration: BoxDecoration(
+                color: isSelected ? AppColors.primary : Colors.white,
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(
+                  color: isSelected
+                      ? AppColors.primary
+                      : const Color(0xFFE3E8EF),
+                ),
+              ),
+              child: Center(
+                child: Text(
+                  category,
+                  style: TextStyle(
+                    color: isSelected ? Colors.white : AppColors.textSecondary,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13,
+                  ),
+                ),
+              ),
+            ),
+          );
         },
       ),
     );
@@ -158,7 +228,12 @@ class _HomeScreenState extends State<HomeScreen> {
           );
         }
 
-        final posts = snapshot.data ?? [];
+        final allPosts = snapshot.data ?? [];
+        final posts = _selectedPostCategory == 'All'
+            ? allPosts
+            : allPosts
+                  .where((post) => post.category == _selectedPostCategory)
+                  .toList();
 
         if (posts.isEmpty) {
           return Container(
@@ -175,26 +250,33 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ],
             ),
-            child: const Column(
+            child: Column(
               children: [
-                Icon(
+                const Icon(
                   Icons.post_add_rounded,
                   size: 38,
                   color: Color(0xFF9AA3B2),
                 ),
-                SizedBox(height: 12),
+                const SizedBox(height: 12),
                 Text(
-                  'No posts yet',
-                  style: TextStyle(
+                  _selectedPostCategory == 'All'
+                      ? 'No posts yet'
+                      : 'No posts in $_selectedPostCategory',
+                  style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
                     color: Color(0xFF0D1B3E),
                   ),
                 ),
-                SizedBox(height: 6),
+                const SizedBox(height: 6),
                 Text(
-                  'Posts from users will appear here.',
-                  style: TextStyle(fontSize: 13, color: Color(0xFF7F88A3)),
+                  _selectedPostCategory == 'All'
+                      ? 'Posts from travelers will appear here.'
+                      : 'Posts for this category will appear here.',
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: Color(0xFF7F88A3),
+                  ),
                 ),
               ],
             ),
@@ -233,21 +315,26 @@ class _HomeScreenState extends State<HomeScreen> {
                     children: [
                       const HomeHeader(),
                       const SizedBox(height: 24),
-                      const HomeSearchBar(),
-                      const SizedBox(height: 18),
-                      _buildCategories(_homeData!.categories),
+                      _buildHeroIntro(),
                       const SizedBox(height: 28),
                       _buildSectionTitle(
-                        title: 'Trending Destinations',
-                        actionText: 'See all',
-                        onActionTap: () {},
+                        title: 'Top places in Egypt',
+                        subtitle:
+                            'Handpicked destinations for unforgettable travel experiences.',
                       ),
                       const SizedBox(height: 16),
                       _buildTrendingSection(_homeData!),
-                      const SizedBox(height: 28),
-                      _buildSectionTitle(title: 'Community Insights'),
+                      const SizedBox(height: 32),
+                      _buildSectionTitle(
+                        title: 'Explore Community',
+                        subtitle:
+                            'See what travelers are sharing across Egypt.',
+                      ),
+                      const SizedBox(height: 16),
+                      _buildPostFilterCategories(),
                       const SizedBox(height: 16),
                       _buildFirestoreCommunitySection(),
+                      const SizedBox(height: 12),
                     ],
                   ),
                 ),

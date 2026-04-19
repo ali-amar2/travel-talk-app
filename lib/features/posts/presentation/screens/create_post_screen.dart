@@ -18,8 +18,17 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   final PostRepository _postRepository = PostRepository();
   final ImagePicker _picker = ImagePicker();
 
+  static const List<String> _categories = [
+    'Beach',
+    'Safari',
+    'Cultural & Historical',
+    'Medical & Wellness',
+    'Entertainment',
+  ];
+
   File? _selectedImage;
   bool _isLoading = false;
+  String? _selectedCategory;
 
   @override
   void dispose() {
@@ -50,6 +59,13 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
       return;
     }
 
+    if (_selectedCategory == null || _selectedCategory!.trim().isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Please choose a category')));
+      return;
+    }
+
     final currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser == null) {
       ScaffoldMessenger.of(
@@ -65,6 +81,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
         userId: currentUser.uid,
         description: _descriptionController.text.trim(),
         imagePath: _selectedImage!.path,
+        category: _selectedCategory!,
       );
 
       if (!mounted) return;
@@ -146,6 +163,38 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                           ),
                         ),
                 ),
+              ),
+              const SizedBox(height: 18),
+              DropdownButtonFormField<String>(
+                value: _selectedCategory,
+                decoration: InputDecoration(
+                  labelText: 'Category',
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+                items: _categories
+                    .map(
+                      (category) => DropdownMenuItem<String>(
+                        value: category,
+                        child: Text(category),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (value) {
+                  setState(() {
+                    _selectedCategory = value;
+                  });
+                },
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Category is required';
+                  }
+                  return null;
+                },
               ),
               const SizedBox(height: 18),
               TextFormField(

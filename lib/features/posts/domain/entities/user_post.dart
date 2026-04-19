@@ -5,6 +5,7 @@ class UserPost {
   final String userId;
   final String description;
   final String imagePath;
+  final String category;
   final DateTime? createdAt;
 
   const UserPost({
@@ -12,6 +13,7 @@ class UserPost {
     required this.userId,
     required this.description,
     required this.imagePath,
+    required this.category,
     required this.createdAt,
   });
 
@@ -20,9 +22,10 @@ class UserPost {
 
     return UserPost(
       id: id,
-      userId: map['userId'] as String? ?? '',
+      userId: map['userId'] as String? ?? map['ownerUserId'] as String? ?? '',
       description: map['description'] as String? ?? '',
       imagePath: map['imagePath'] as String? ?? '',
+      category: map['category'] as String? ?? '',
       createdAt: timestamp is Timestamp ? timestamp.toDate() : null,
     );
   }

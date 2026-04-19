@@ -15,17 +15,10 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  bool _showPhotos = true;
+  bool _showLikedPosts = false;
 
   final UserRepository _userRepository = UserRepository();
   final PostRepository _postRepository = PostRepository();
-
-  final List<String> _photos = const [
-    'assets/images/profile_photo1.jpg',
-    'assets/images/profile_photo2.jpg',
-    'assets/images/profile_photo3.jpg',
-    'assets/images/profile_photo4.jpg',
-  ];
 
   Future<void> _logout() async {
     await FirebaseAuth.instance.signOut();
@@ -202,21 +195,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         Expanded(
                           child: _TabButton(
                             title: 'My Posts',
-                            isSelected: !_showPhotos,
+                            isSelected: !_showLikedPosts,
                             onTap: () {
                               setState(() {
-                                _showPhotos = false;
+                                _showLikedPosts = false;
                               });
                             },
                           ),
                         ),
                         Expanded(
                           child: _TabButton(
-                            title: 'Photos',
-                            isSelected: _showPhotos,
+                            title: 'Liked Posts',
+                            isSelected: _showLikedPosts,
                             onTap: () {
                               setState(() {
-                                _showPhotos = true;
+                                _showLikedPosts = true;
                               });
                             },
                           ),
@@ -225,8 +218,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ),
                   const SizedBox(height: 18),
-                  _showPhotos
-                      ? _buildPhotosGrid()
+                  _showLikedPosts
+                      ? _buildLikedPosts(currentUser.uid)
                       : _buildMyPosts(currentUser.uid),
                 ],
               ),
@@ -237,38 +230,84 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildPhotosGrid() {
-    return GridView.builder(
-      itemCount: _photos.length,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        mainAxisSpacing: 12,
-        crossAxisSpacing: 12,
-        childAspectRatio: 0.82,
-      ),
-      itemBuilder: (context, index) {
-        return ClipRRect(
-          borderRadius: BorderRadius.circular(18),
-          child: Image.asset(
-            _photos[index],
-            fit: BoxFit.cover,
-            errorBuilder: (context, error, stackTrace) {
-              return Container(
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
-                  borderRadius: BorderRadius.circular(18),
+  Widget _buildLikedPosts(String userId) {
+    return StreamBuilder<List<UserPost>>(
+      stream: _postRepository.watchLikedPosts(userId),
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(22),
+            ),
+            child: Text(
+              'Failed to load liked posts: ${snapshot.error}',
+              style: const TextStyle(color: Colors.red),
+            ),
+          );
+        }
+
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Padding(
+            padding: EdgeInsets.symmetric(vertical: 30),
+            child: CircularProgressIndicator(),
+          );
+        }
+
+        final posts = snapshot.data ?? [];
+
+        if (posts.isEmpty) {
+          return Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(22),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.04),
+                  blurRadius: 16,
+                  offset: const Offset(0, 6),
                 ),
-                child: const Center(
-                  child: Icon(
-                    Icons.image_not_supported_outlined,
-                    color: Colors.grey,
-                    size: 34,
+              ],
+            ),
+            child: const Column(
+              children: [
+                Icon(
+                  Icons.favorite_border_rounded,
+                  size: 38,
+                  color: Color(0xFF9AA3B2),
+                ),
+                SizedBox(height: 12),
+                Text(
+                  'No liked posts yet',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF0D1B3E),
                   ),
                 ),
-              );
-            },
+                SizedBox(height: 6),
+                Text(
+                  'Posts you like will appear here.',
+                  style: TextStyle(fontSize: 13, color: Color(0xFF7F88A3)),
+                ),
+              ],
+            ),
+          );
+        }
+
+        return Column(
+          children: List.generate(
+            posts.length,
+            (index) => Padding(
+              padding: EdgeInsets.only(
+                bottom: index == posts.length - 1 ? 0 : 16,
+              ),
+              child: FirestorePostCard(post: posts[index]),
+            ),
           ),
         );
       },
