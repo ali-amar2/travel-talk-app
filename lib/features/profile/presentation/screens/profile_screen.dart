@@ -1,8 +1,11 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:travel_talk/features/auth/data/repositories/user_repository.dart';
+import 'package:travel_talk/features/auth/presentation/screens/login_screen.dart';
+import 'package:travel_talk/features/home/presentation/widgets/firestore_post_card.dart';
+import 'package:travel_talk/features/posts/data/repositories/post_repository.dart';
+import 'package:travel_talk/features/posts/domain/entities/user_post.dart';
 import 'package:travel_talk/features/profile/presentation/screens/edit_profile_screen.dart';
-import 'package:travel_talk/presentation/login_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -15,6 +18,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _showPhotos = true;
 
   final UserRepository _userRepository = UserRepository();
+  final PostRepository _postRepository = PostRepository();
 
   final List<String> _photos = const [
     'assets/images/profile_photo1.jpg',
@@ -167,9 +171,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       color: Color(0xFF0D1B3E),
                     ),
                   ),
-
                   const SizedBox(height: 6),
-
                   Text(
                     currentUser.email ?? '',
                     style: const TextStyle(
@@ -178,9 +180,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       fontWeight: FontWeight.w500,
                     ),
                   ),
-
                   const SizedBox(height: 8),
-
                   Text(
                     bio.isEmpty ? 'No bio yet' : bio,
                     textAlign: TextAlign.center,
@@ -190,7 +190,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       fontWeight: FontWeight.w500,
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 14),
                   Container(
                     padding: const EdgeInsets.all(4),
                     decoration: BoxDecoration(
@@ -225,7 +225,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ),
                   const SizedBox(height: 18),
-                  _showPhotos ? _buildPhotosGrid() : _buildPostsPlaceholder(),
+                  _showPhotos
+                      ? _buildPhotosGrid()
+                      : _buildMyPosts(currentUser.uid),
                 ],
               ),
             );
@@ -273,40 +275,87 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildPostsPlaceholder() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 16,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
-      child: const Column(
-        children: [
-          Icon(Icons.post_add_rounded, size: 38, color: Color(0xFF9AA3B2)),
-          SizedBox(height: 12),
-          Text(
-            'No posts yet',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF0D1B3E),
+  Widget _buildMyPosts(String userId) {
+    return StreamBuilder<List<UserPost>>(
+      stream: _postRepository.watchUserPosts(userId),
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(22),
+            ),
+            child: Text(
+              'Failed to load posts: ${snapshot.error}',
+              style: const TextStyle(color: Colors.red),
+            ),
+          );
+        }
+
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Padding(
+            padding: EdgeInsets.symmetric(vertical: 30),
+            child: CircularProgressIndicator(),
+          );
+        }
+
+        final posts = snapshot.data ?? [];
+
+        if (posts.isEmpty) {
+          return Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(22),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.04),
+                  blurRadius: 16,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
+            child: const Column(
+              children: [
+                Icon(
+                  Icons.post_add_rounded,
+                  size: 38,
+                  color: Color(0xFF9AA3B2),
+                ),
+                SizedBox(height: 12),
+                Text(
+                  'No posts yet',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF0D1B3E),
+                  ),
+                ),
+                SizedBox(height: 6),
+                Text(
+                  'Your posts will appear here.',
+                  style: TextStyle(fontSize: 13, color: Color(0xFF7F88A3)),
+                ),
+              ],
+            ),
+          );
+        }
+
+        return Column(
+          children: List.generate(
+            posts.length,
+            (index) => Padding(
+              padding: EdgeInsets.only(
+                bottom: index == posts.length - 1 ? 0 : 16,
+              ),
+              child: FirestorePostCard(post: posts[index]),
             ),
           ),
-          SizedBox(height: 6),
-          Text(
-            'Your posts will appear here.',
-            style: TextStyle(fontSize: 13, color: Color(0xFF7F88A3)),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }

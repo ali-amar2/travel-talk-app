@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:travel_talk/features/posts/data/repositories/post_repository.dart';
+import 'package:travel_talk/features/posts/domain/entities/user_post.dart';
+
 import '../../../../core/theme/app_colors.dart';
 import '../../data/home_repository.dart';
 import '../../domain/entities/category_item.dart';
 import '../../domain/entities/home_data.dart';
 import '../../domain/usecases/get_home_data_usecase.dart';
 import '../widgets/category_chip_item.dart';
-import '../widgets/community_post_card.dart';
 import '../widgets/destination_card.dart';
+import '../widgets/firestore_post_card.dart';
 import '../widgets/home_header.dart';
 import '../widgets/home_search_bar.dart';
 
@@ -19,6 +22,8 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   late final GetHomeDataUseCase _getHomeDataUseCase;
+  final PostRepository _postRepository = PostRepository();
+
   HomeData? _homeData;
   bool _isLoading = true;
 
@@ -127,17 +132,87 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildCommunitySection(HomeData data) {
-    return Column(
-      children: List.generate(
-        data.communityPosts.length,
-        (index) => Padding(
-          padding: EdgeInsets.only(
-            bottom: index == data.communityPosts.length - 1 ? 0 : 16,
+  Widget _buildFirestoreCommunitySection() {
+    return StreamBuilder<List<UserPost>>(
+      stream: _postRepository.watchAllPosts(),
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(22),
+            ),
+            child: Text(
+              'Failed to load posts: ${snapshot.error}',
+              style: const TextStyle(color: Colors.red),
+            ),
+          );
+        }
+
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Padding(
+            padding: EdgeInsets.symmetric(vertical: 24),
+            child: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        final posts = snapshot.data ?? [];
+
+        if (posts.isEmpty) {
+          return Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(22),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.04),
+                  blurRadius: 16,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
+            child: const Column(
+              children: [
+                Icon(
+                  Icons.post_add_rounded,
+                  size: 38,
+                  color: Color(0xFF9AA3B2),
+                ),
+                SizedBox(height: 12),
+                Text(
+                  'No posts yet',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF0D1B3E),
+                  ),
+                ),
+                SizedBox(height: 6),
+                Text(
+                  'Posts from users will appear here.',
+                  style: TextStyle(fontSize: 13, color: Color(0xFF7F88A3)),
+                ),
+              ],
+            ),
+          );
+        }
+
+        return Column(
+          children: List.generate(
+            posts.length,
+            (index) => Padding(
+              padding: EdgeInsets.only(
+                bottom: index == posts.length - 1 ? 0 : 16,
+              ),
+              child: FirestorePostCard(post: posts[index]),
+            ),
           ),
-          child: CommunityPostCard(post: data.communityPosts[index]),
-        ),
-      ),
+        );
+      },
     );
   }
 
@@ -172,7 +247,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       const SizedBox(height: 28),
                       _buildSectionTitle(title: 'Community Insights'),
                       const SizedBox(height: 16),
-                      _buildCommunitySection(_homeData!),
+                      _buildFirestoreCommunitySection(),
                     ],
                   ),
                 ),

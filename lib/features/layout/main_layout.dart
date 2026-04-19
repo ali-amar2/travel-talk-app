@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:travel_talk/features/home/presentation/screens/home_screen.dart';
 import 'package:travel_talk/features/home/presentation/widgets/custom_bottom_nav_bar.dart';
+import 'package:travel_talk/features/posts/presentation/screens/create_post_screen.dart';
 import 'package:travel_talk/features/profile/presentation/screens/profile_screen.dart';
 
 class MainLayout extends StatefulWidget {
@@ -24,6 +25,19 @@ class _MainLayoutState extends State<MainLayout> {
     setState(() {
       currentIndex = index;
     });
+  }
+
+  Future<void> _openCreatePost() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const CreatePostScreen()),
+    );
+
+    if (result == true && mounted) {
+      setState(() {
+        currentIndex = 3;
+      });
+    }
   }
 
   @override
@@ -51,7 +65,7 @@ class _MainLayoutState extends State<MainLayout> {
         child: FloatingActionButton(
           elevation: 0,
           backgroundColor: Colors.pink,
-          onPressed: () {},
+          onPressed: _openCreatePost,
           child: const Icon(Icons.add, size: 30, color: Colors.white),
         ),
       ),
