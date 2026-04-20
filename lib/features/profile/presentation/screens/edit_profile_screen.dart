@@ -1,4 +1,8 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:travel_talk/core/services/supabase_service.dart';
 import 'package:travel_talk/features/auth/data/repositories/user_repository.dart';
 
 class EditProfileScreen extends StatefulWidget {
@@ -22,10 +26,13 @@ class EditProfileScreen extends StatefulWidget {
 class _EditProfileScreenState extends State<EditProfileScreen> {
   final _formKey = GlobalKey<FormState>();
   final UserRepository _userRepository = UserRepository();
+  final SupabaseService _supabaseService = SupabaseService();
+  final ImagePicker _picker = ImagePicker();
 
   late final TextEditingController _nameController;
   late final TextEditingController _bioController;
 
+  File? _selectedProfileImage;
   bool _isLoading = false;
 
   @override
@@ -42,16 +49,39 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     super.dispose();
   }
 
+  Future<void> _pickProfileImage() async {
+    final pickedFile = await _picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 85,
+    );
+
+    if (pickedFile == null) return;
+
+    setState(() {
+      _selectedProfileImage = File(pickedFile.path);
+    });
+  }
+
   Future<void> _saveProfile() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
 
     try {
+      String? uploadedPhotoUrl;
+
+      if (_selectedProfileImage != null) {
+        uploadedPhotoUrl = await _supabaseService.uploadProfileImage(
+          file: _selectedProfileImage!,
+          userId: widget.uid,
+        );
+      }
+
       await _userRepository.updateProfile(
         uid: widget.uid,
         name: _nameController.text.trim(),
         bio: _bioController.text.trim(),
+        photoUrl: uploadedPhotoUrl,
       );
 
       if (!mounted) return;
@@ -61,12 +91,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       );
 
       Navigator.pop(context);
-    } catch (_) {
+    } catch (e) {
       if (!mounted) return;
 
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Failed to update profile')));
+      ).showSnackBar(SnackBar(content: Text('Failed to update profile: $e')));
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -74,18 +104,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     }
   }
 
-  void _showPhotoComingSoon() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text(
-          'Photo upload will be connected to Firebase Storage next',
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
+    final bool hasNetworkPhoto =
+        widget.initialPhotoUrl.isNotEmpty && _selectedProfileImage == null;
+
     return Scaffold(
       backgroundColor: const Color(0xFFF4F5F7),
       appBar: AppBar(
@@ -109,15 +132,17 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   CircleAvatar(
                     radius: 46,
                     backgroundColor: Colors.white,
-                    backgroundImage: widget.initialPhotoUrl.isNotEmpty
+                    backgroundImage: _selectedProfileImage != null
+                        ? FileImage(_selectedProfileImage!)
+                        : hasNetworkPhoto
                         ? NetworkImage(widget.initialPhotoUrl)
                         : null,
-                    child: widget.initialPhotoUrl.isEmpty
+                    child: _selectedProfileImage == null && !hasNetworkPhoto
                         ? const Icon(Icons.person, size: 42, color: Colors.grey)
                         : null,
                   ),
                   GestureDetector(
-                    onTap: _showPhotoComingSoon,
+                    onTap: _pickProfileImage,
                     child: Container(
                       padding: const EdgeInsets.all(8),
                       decoration: const BoxDecoration(

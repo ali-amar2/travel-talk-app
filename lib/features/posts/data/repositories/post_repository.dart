@@ -21,14 +21,16 @@ class PostRepository {
   Future<void> createPost({
     required String userId,
     required String description,
-    required String imagePath,
+    required String imageUrl,
     required String category,
+    required String location,
   }) async {
     await _postsCollection.add({
       'userId': userId,
       'description': description,
-      'imagePath': imagePath,
+      'imageUrl': imageUrl,
       'category': category,
+      'location': location,
       'createdAt': FieldValue.serverTimestamp(),
     });
   }
@@ -104,8 +106,9 @@ class PostRepository {
       'postId': post.id,
       'ownerUserId': post.userId,
       'description': post.description,
-      'imagePath': post.imagePath,
+      'imageUrl': post.imageUrl,
       'category': post.category,
+      'location': post.location,
       'createdAt': post.createdAt != null
           ? Timestamp.fromDate(post.createdAt!)
           : FieldValue.serverTimestamp(),

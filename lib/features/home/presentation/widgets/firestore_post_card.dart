@@ -1,11 +1,8 @@
-import 'dart:io';
-
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:travel_talk/features/auth/data/repositories/user_repository.dart';
 import 'package:travel_talk/features/posts/data/repositories/post_repository.dart';
 import 'package:travel_talk/features/posts/domain/entities/user_post.dart';
-
 import '../../../../core/theme/app_colors.dart';
 
 class FirestorePostCard extends StatefulWidget {
@@ -82,21 +79,17 @@ class _FirestorePostCardState extends State<FirestorePostCard> {
             : 'Unknown User';
 
         final String photoUrl = (userData?['photoUrl'] as String?) ?? '';
-        final String location =
-            (userData?['bio'] as String?)?.trim().isNotEmpty == true
-            ? userData!['bio'] as String
-            : 'Travel Talk User';
 
         return Container(
           width: double.infinity,
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(24),
+            borderRadius: BorderRadius.circular(28),
             boxShadow: [
               BoxShadow(
                 color: AppColors.shadow,
-                blurRadius: 18,
+                blurRadius: 20,
                 offset: const Offset(0, 8),
               ),
             ],
@@ -109,12 +102,13 @@ class _FirestorePostCardState extends State<FirestorePostCard> {
                 photoUrl: photoUrl,
                 timeAgo: _formatTimeAgo(widget.post.createdAt),
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 12),
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
                 children: [
-                  _PostLocationChip(location: location),
+                  if (widget.post.location.trim().isNotEmpty)
+                    _PostLocationChip(location: widget.post.location),
                   if (widget.post.category.trim().isNotEmpty)
                     _PostCategoryChip(category: widget.post.category),
                 ],
@@ -123,8 +117,11 @@ class _FirestorePostCardState extends State<FirestorePostCard> {
               GestureDetector(
                 onDoubleTap: _likeOnDoubleTap,
                 child: ClipRRect(
-                  borderRadius: BorderRadius.circular(20),
-                  child: _buildPostImage(),
+                  borderRadius: BorderRadius.circular(22),
+                  child: AspectRatio(
+                    aspectRatio: 1.25,
+                    child: _buildPostImage(),
+                  ),
                 ),
               ),
               const SizedBox(height: 14),
@@ -132,12 +129,14 @@ class _FirestorePostCardState extends State<FirestorePostCard> {
                 widget.post.description,
                 style: const TextStyle(
                   fontSize: 14,
-                  height: 1.6,
+                  height: 1.7,
                   color: AppColors.textSecondary,
                   fontWeight: FontWeight.w500,
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 14),
+              Divider(height: 1, color: Colors.grey.withOpacity(0.14)),
+              const SizedBox(height: 12),
               _PostActions(
                 postId: widget.post.id,
                 userId: currentUser?.uid,
@@ -152,10 +151,8 @@ class _FirestorePostCardState extends State<FirestorePostCard> {
   }
 
   Widget _buildPostImage() {
-    if (widget.post.imagePath.isEmpty) {
+    if (widget.post.imageUrl.isEmpty) {
       return Container(
-        width: double.infinity,
-        height: 180,
         color: Colors.grey.shade300,
         child: const Center(
           child: Icon(
@@ -167,17 +164,11 @@ class _FirestorePostCardState extends State<FirestorePostCard> {
       );
     }
 
-    final file = File(widget.post.imagePath);
-
-    return Image.file(
-      file,
-      width: double.infinity,
-      height: 180,
+    return Image.network(
+      widget.post.imageUrl,
       fit: BoxFit.cover,
       errorBuilder: (context, error, stackTrace) {
         return Container(
-          width: double.infinity,
-          height: 180,
           color: Colors.grey.shade300,
           child: const Center(
             child: Icon(
@@ -208,14 +199,14 @@ class _PostHeader extends StatelessWidget {
     return Row(
       children: [
         CircleAvatar(
-          radius: 20,
-          backgroundColor: Colors.purple.shade100,
+          radius: 22,
+          backgroundColor: const Color(0xFFE9EEF6),
           backgroundImage: photoUrl.isNotEmpty ? NetworkImage(photoUrl) : null,
           child: photoUrl.isEmpty
-              ? const Icon(Icons.person, color: Colors.white)
+              ? const Icon(Icons.person, color: Color(0xFF7F88A3))
               : null,
         ),
-        const SizedBox(width: 10),
+        const SizedBox(width: 12),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -224,11 +215,11 @@ class _PostHeader extends StatelessWidget {
                 userName,
                 style: const TextStyle(
                   fontWeight: FontWeight.w800,
-                  fontSize: 14,
+                  fontSize: 15,
                   color: AppColors.textPrimary,
                 ),
               ),
-              const SizedBox(height: 2),
+              const SizedBox(height: 3),
               Text(
                 timeAgo,
                 style: const TextStyle(
@@ -253,7 +244,7 @@ class _PostLocationChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
         color: const Color(0xFFF2F8FF),
         borderRadius: BorderRadius.circular(20),
@@ -263,10 +254,10 @@ class _PostLocationChip extends StatelessWidget {
         children: [
           const Icon(
             Icons.location_on_rounded,
-            size: 16,
+            size: 15,
             color: AppColors.primary,
           ),
-          const SizedBox(width: 4),
+          const SizedBox(width: 5),
           Flexible(
             child: Text(
               location,
@@ -292,7 +283,7 @@ class _PostCategoryChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
         color: const Color(0xFFFFF4E5),
         borderRadius: BorderRadius.circular(20),
@@ -338,31 +329,46 @@ class _PostActions extends StatelessWidget {
             return InkWell(
               onTap: onLikeTap,
               borderRadius: BorderRadius.circular(30),
-              child: Row(
-                children: [
-                  Icon(
-                    isLiked
-                        ? Icons.favorite_rounded
-                        : Icons.favorite_border_rounded,
-                    size: 22,
-                    color: isLiked ? Colors.red : AppColors.textSecondary,
-                  ),
-                  const SizedBox(width: 6),
-                  StreamBuilder<int>(
-                    stream: repository.watchLikesCount(postId),
-                    builder: (context, countSnapshot) {
-                      final likesCount = countSnapshot.data ?? 0;
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 8,
+                ),
+                decoration: BoxDecoration(
+                  color: isLiked
+                      ? Colors.red.withOpacity(0.08)
+                      : const Color(0xFFF5F6FA),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      isLiked
+                          ? Icons.favorite_rounded
+                          : Icons.favorite_border_rounded,
+                      size: 20,
+                      color: isLiked ? Colors.red : AppColors.textSecondary,
+                    ),
+                    const SizedBox(width: 6),
+                    StreamBuilder<int>(
+                      stream: repository.watchLikesCount(postId),
+                      builder: (context, countSnapshot) {
+                        final likesCount = countSnapshot.data ?? 0;
 
-                      return Text(
-                        '$likesCount',
-                        style: const TextStyle(
-                          color: AppColors.textSecondary,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      );
-                    },
-                  ),
-                ],
+                        return Text(
+                          '$likesCount likes',
+                          style: TextStyle(
+                            color: isLiked
+                                ? Colors.red
+                                : AppColors.textSecondary,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 13,
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
               ),
             );
           },

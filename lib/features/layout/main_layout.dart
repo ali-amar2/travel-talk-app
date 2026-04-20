@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:travel_talk/features/discover/presentation/screens/discover_screen.dart';
 import 'package:travel_talk/features/home/presentation/screens/home_screen.dart';
 import 'package:travel_talk/features/home/presentation/widgets/custom_bottom_nav_bar.dart';
 import 'package:travel_talk/features/posts/presentation/screens/create_post_screen.dart';
@@ -16,7 +17,7 @@ class _MainLayoutState extends State<MainLayout> {
 
   final List<Widget> screens = const [
     HomeScreen(),
-    Center(child: Text("Map")),
+    DiscoverScreen(),
     Center(child: Text("Saved")),
     ProfileScreen(),
   ];

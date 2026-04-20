@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:travel_talk/core/services/supabase_service.dart';
 import 'package:travel_talk/features/posts/data/repositories/post_repository.dart';
 
 class CreatePostScreen extends StatefulWidget {
@@ -15,7 +16,9 @@ class CreatePostScreen extends StatefulWidget {
 class _CreatePostScreenState extends State<CreatePostScreen> {
   final _formKey = GlobalKey<FormState>();
   final _descriptionController = TextEditingController();
+  final _locationController = TextEditingController();
   final PostRepository _postRepository = PostRepository();
+  final SupabaseService _supabaseService = SupabaseService();
   final ImagePicker _picker = ImagePicker();
 
   static const List<String> _categories = [
@@ -33,6 +36,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   @override
   void dispose() {
     _descriptionController.dispose();
+    _locationController.dispose();
     super.dispose();
   }
 
@@ -77,11 +81,17 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     setState(() => _isLoading = true);
 
     try {
+      final imageUrl = await _supabaseService.uploadPostImage(
+        file: _selectedImage!,
+        userId: currentUser.uid,
+      );
+
       await _postRepository.createPost(
         userId: currentUser.uid,
         description: _descriptionController.text.trim(),
-        imagePath: _selectedImage!.path,
+        imageUrl: imageUrl,
         category: _selectedCategory!,
+        location: _locationController.text.trim(),
       );
 
       if (!mounted) return;
@@ -91,12 +101,12 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
       );
 
       Navigator.pop(context, true);
-    } catch (_) {
+    } catch (e) {
       if (!mounted) return;
 
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Failed to create post')));
+      ).showSnackBar(SnackBar(content: Text('Failed to create post: $e')));
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -195,6 +205,20 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                   }
                   return null;
                 },
+              ),
+              const SizedBox(height: 18),
+              TextFormField(
+                controller: _locationController,
+                decoration: InputDecoration(
+                  labelText: 'Location (Optional)',
+                  hintText: 'Example: Dahab, South Sinai',
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
               ),
               const SizedBox(height: 18),
               TextFormField(
