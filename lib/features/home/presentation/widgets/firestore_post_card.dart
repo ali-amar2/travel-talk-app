@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:travel_talk/features/auth/data/repositories/user_repository.dart';
 import 'package:travel_talk/features/posts/data/repositories/post_repository.dart';
 import 'package:travel_talk/features/posts/domain/entities/user_post.dart';
+import 'package:travel_talk/features/posts/presentation/screens/edit_post_screen.dart';
 import '../../../../core/theme/app_colors.dart';
 
 class FirestorePostCard extends StatefulWidget {
@@ -17,6 +18,7 @@ class FirestorePostCard extends StatefulWidget {
 class _FirestorePostCardState extends State<FirestorePostCard> {
   final PostRepository _postRepository = PostRepository();
   bool _isLiking = false;
+  bool _isDeleting = false;
 
   String _formatTimeAgo(DateTime? dateTime) {
     if (dateTime == null) return 'Just now';
@@ -63,10 +65,127 @@ class _FirestorePostCardState extends State<FirestorePostCard> {
     }
   }
 
+  Future<void> _openPostOptions() async {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null || currentUser.uid != widget.post.userId) return;
+
+    await showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(18, 14, 18, 18),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 42,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                ),
+                const SizedBox(height: 18),
+                ListTile(
+                  leading: const Icon(
+                    Icons.edit_outlined,
+                    color: AppColors.textPrimary,
+                  ),
+                  title: const Text(
+                    'Edit Post',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      this.context,
+                      MaterialPageRoute(
+                        builder: (_) => EditPostScreen(post: widget.post),
+                      ),
+                    );
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(
+                    Icons.delete_outline_rounded,
+                    color: Colors.red,
+                  ),
+                  title: const Text(
+                    'Delete Post',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: Colors.red,
+                    ),
+                  ),
+                  onTap: () async {
+                    Navigator.pop(context);
+                    await _confirmDeletePost();
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _confirmDeletePost() async {
+    final shouldDelete = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Delete Post'),
+          content: const Text('Are you sure you want to delete this post?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Delete', style: TextStyle(color: Colors.red)),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (shouldDelete != true || _isDeleting) return;
+
+    setState(() => _isDeleting = true);
+
+    try {
+      await _postRepository.deletePost(widget.post.id);
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Post deleted successfully')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to delete post: $e')));
+    } finally {
+      if (mounted) {
+        setState(() => _isDeleting = false);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final userRepository = UserRepository();
     final currentUser = FirebaseAuth.instance.currentUser;
+    final bool isOwner = currentUser?.uid == widget.post.userId;
 
     return FutureBuilder<Map<String, dynamic>?>(
       future: userRepository.getUserById(widget.post.userId),
@@ -101,6 +220,8 @@ class _FirestorePostCardState extends State<FirestorePostCard> {
                 userName: userName,
                 photoUrl: photoUrl,
                 timeAgo: _formatTimeAgo(widget.post.createdAt),
+                isOwner: isOwner,
+                onMoreTap: _openPostOptions,
               ),
               const SizedBox(height: 12),
               Wrap(
@@ -187,11 +308,15 @@ class _PostHeader extends StatelessWidget {
   final String userName;
   final String photoUrl;
   final String timeAgo;
+  final bool isOwner;
+  final VoidCallback onMoreTap;
 
   const _PostHeader({
     required this.userName,
     required this.photoUrl,
     required this.timeAgo,
+    required this.isOwner,
+    required this.onMoreTap,
   });
 
   @override
@@ -231,6 +356,14 @@ class _PostHeader extends StatelessWidget {
             ],
           ),
         ),
+        if (isOwner)
+          IconButton(
+            onPressed: onMoreTap,
+            icon: const Icon(
+              Icons.more_vert_rounded,
+              color: AppColors.textSecondary,
+            ),
+          ),
       ],
     );
   }

@@ -35,6 +35,32 @@ class PostRepository {
     });
   }
 
+  Future<void> updatePost({
+    required String postId,
+    required String description,
+    required String category,
+    required String location,
+  }) async {
+    await _postsCollection.doc(postId).update({
+      'description': description,
+      'category': category,
+      'location': location,
+    });
+  }
+
+  Future<void> deletePost(String postId) async {
+    final likesSnapshot = await _postLikesCollection(postId).get();
+
+    for (final likeDoc in likesSnapshot.docs) {
+      final userId = likeDoc.id;
+
+      await _userLikedPostsCollection(userId).doc(postId).delete();
+      await likeDoc.reference.delete();
+    }
+
+    await _postsCollection.doc(postId).delete();
+  }
+
   Stream<List<UserPost>> watchUserPosts(String userId) {
     return _postsCollection
         .where('userId', isEqualTo: userId)

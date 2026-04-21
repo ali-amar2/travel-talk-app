@@ -43,4 +43,23 @@ class SupabaseService {
 
     return _client.storage.from('post-images').getPublicUrl(storagePath);
   }
+
+  Future<String> uploadTripImage({
+    required File file,
+    required String userId,
+  }) async {
+    final extension = path.extension(file.path);
+    final fileName = 'trip_${DateTime.now().millisecondsSinceEpoch}$extension';
+    final storagePath = '$userId/trips/$fileName';
+
+    await _client.storage
+        .from('post-images')
+        .upload(
+          storagePath,
+          file,
+          fileOptions: const FileOptions(upsert: true),
+        );
+
+    return _client.storage.from('post-images').getPublicUrl(storagePath);
+  }
 }

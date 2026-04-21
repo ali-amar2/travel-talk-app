@@ -17,122 +17,25 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   bool _isLoading = false;
 
-  List<Widget> _pages() => [
-    _buildPage(
-      title: 'Discover Tourist Places in Egypt',
+  List<_OnboardingItem> get _items => const [
+    _OnboardingItem(
+      title: 'Discover Egypt Like Never Before',
       description:
-          'Explore the best attractions, read reviews, and get detailed information.',
-      image: null,
+          'Find inspiring destinations, community travel posts, and unforgettable places across Egypt.',
       icon: Icons.travel_explore_rounded,
+      accentColor: Color(0xFF1296DB),
     ),
-    _buildPage(
-      title: 'Your Journey Starts Here',
-      description: 'Enjoy a unique travel experience and discover new places.',
+    _OnboardingItem(
+      title: 'Plan Trips and Travel Together',
+      description:
+          'Create your own trips, explore travel vibes, and connect with travelers who share your journey.',
       image: 'assets/images/onboarding_bg2.jpg',
       icon: Icons.explore_rounded,
+      accentColor: Color(0xFF1296DB),
     ),
   ];
 
-  bool get _isLastPage => _currentPage == _pages().length - 1;
-
-  Widget _buildPage({
-    required String title,
-    required String description,
-    required IconData icon,
-    String? image,
-  }) {
-    final bool hasImage = image != null;
-
-    return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFFF4F5F7),
-        image: hasImage
-            ? DecorationImage(image: AssetImage(image), fit: BoxFit.cover)
-            : null,
-      ),
-      child: Container(
-        width: double.infinity,
-        height: double.infinity,
-        padding: const EdgeInsets.fromLTRB(24, 120, 24, 48),
-        decoration: hasImage
-            ? BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.black.withOpacity(0.18),
-                    Colors.black.withOpacity(0.42),
-                    Colors.black.withOpacity(0.65),
-                  ],
-                ),
-              )
-            : null,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            if (!hasImage)
-              Container(
-                width: 110,
-                height: 110,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF1296DB).withOpacity(0.12),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(icon, size: 54, color: const Color(0xFF1296DB)),
-              ),
-            if (!hasImage) const SizedBox(height: 34),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: hasImage ? Colors.white.withOpacity(0.12) : Colors.white,
-                borderRadius: BorderRadius.circular(28),
-                border: hasImage
-                    ? Border.all(color: Colors.white.withOpacity(0.14))
-                    : null,
-                boxShadow: hasImage
-                    ? null
-                    : [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
-                          blurRadius: 18,
-                          offset: const Offset(0, 8),
-                        ),
-                      ],
-              ),
-              child: Column(
-                children: [
-                  Text(
-                    title,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.w800,
-                      height: 1.25,
-                      color: hasImage ? Colors.white : const Color(0xFF0D1B3E),
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  Text(
-                    description,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 15,
-                      height: 1.7,
-                      color: hasImage
-                          ? Colors.white70
-                          : const Color(0xFF6D7690),
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  bool get _isLastPage => _currentPage == _items.length - 1;
 
   Future<void> _completeOnboarding() async {
     if (_isLoading) return;
@@ -185,24 +88,242 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   Widget _buildDotsIndicator() {
-    final pagesCount = _pages().length;
-
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: List.generate(
-        pagesCount,
+        _items.length,
         (index) => AnimatedContainer(
           duration: const Duration(milliseconds: 250),
           margin: const EdgeInsets.symmetric(horizontal: 4),
-          width: _currentPage == index ? 24 : 8,
+          width: _currentPage == index ? 26 : 8,
           height: 8,
           decoration: BoxDecoration(
             color: _currentPage == index
                 ? const Color(0xFF1296DB)
-                : Colors.white.withOpacity(_currentPage == 1 ? 0.45 : 0.35),
+                : const Color(0xFFD6DEEA),
             borderRadius: BorderRadius.circular(20),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildTopActions() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.88),
+            borderRadius: BorderRadius.circular(22),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: const [
+              Icon(Icons.explore_rounded, size: 18, color: Color(0xFF1296DB)),
+              SizedBox(width: 8),
+              Text(
+                'Travel Talk',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF0D1B3E),
+                ),
+              ),
+            ],
+          ),
+        ),
+        TextButton(
+          onPressed: _isLoading ? null : _skip,
+          style: TextButton.styleFrom(
+            backgroundColor: Colors.white,
+            foregroundColor: const Color(0xFF0D1B3E),
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(24),
+            ),
+          ),
+          child: const Text(
+            'Skip',
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPage(_OnboardingItem item) {
+    final bool hasImage = item.image != null;
+
+    return Container(
+      color: const Color(0xFFF4F5F7),
+      child: Stack(
+        children: [
+          Positioned(
+            top: -70,
+            right: -50,
+            child: Container(
+              width: 220,
+              height: 220,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: item.accentColor.withOpacity(0.08),
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: 130,
+            left: -40,
+            child: Container(
+              width: 160,
+              height: 160,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: const Color(0xFFFF5C7A).withOpacity(0.06),
+              ),
+            ),
+          ),
+          Container(
+            width: double.infinity,
+            height: double.infinity,
+            padding: const EdgeInsets.fromLTRB(24, 110, 24, 48),
+            child: Column(
+              children: [
+                const Spacer(),
+                if (hasImage)
+                  Container(
+                    width: double.infinity,
+                    height: 230,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(30),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.08),
+                          blurRadius: 22,
+                          offset: const Offset(0, 10),
+                        ),
+                      ],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(30),
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          Image.asset(item.image!, fit: BoxFit.cover),
+                          Container(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                                colors: [
+                                  Colors.black.withOpacity(0.08),
+                                  Colors.black.withOpacity(0.22),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                else
+                  Container(
+                    width: 122,
+                    height: 122,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          item.accentColor.withOpacity(0.16),
+                          item.accentColor.withOpacity(0.08),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(item.icon, size: 58, color: item.accentColor),
+                  ),
+                const SizedBox(height: 30),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(30),
+                    border: Border.all(color: const Color(0xFFF1F3F7)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 22,
+                        offset: const Offset(0, 10),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    children: [
+                      Text(
+                        item.title,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontSize: 29,
+                          fontWeight: FontWeight.w800,
+                          height: 1.2,
+                          color: Color(0xFF0D1B3E),
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      Text(
+                        item.description,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          height: 1.7,
+                          color: Color(0xFF6D7690),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 18),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    if (!hasImage) ...const [
+                      _MiniFeatureChip(
+                        icon: Icons.place_outlined,
+                        label: 'Places',
+                      ),
+                      _MiniFeatureChip(
+                        icon: Icons.people_outline_rounded,
+                        label: 'Community',
+                      ),
+                      _MiniFeatureChip(
+                        icon: Icons.luggage_rounded,
+                        label: 'Trips',
+                      ),
+                    ] else ...const [
+                      _MiniFeatureChip(
+                        icon: Icons.route_rounded,
+                        label: 'Plan',
+                      ),
+                      _MiniFeatureChip(
+                        icon: Icons.group_outlined,
+                        label: 'Join',
+                      ),
+                      _MiniFeatureChip(
+                        icon: Icons.explore_outlined,
+                        label: 'Explore',
+                      ),
+                    ],
+                  ],
+                ),
+                const Spacer(),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -215,57 +336,30 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final pages = _pages();
-    final bool isImagePage = _currentPage == 1;
-
     return Scaffold(
       body: Stack(
         children: [
-          PageView(
+          PageView.builder(
             controller: _controller,
+            itemCount: _items.length,
             onPageChanged: (index) {
               setState(() {
                 _currentPage = index;
               });
             },
-            children: pages,
+            itemBuilder: (context, index) {
+              return _buildPage(_items[index]);
+            },
           ),
           SafeArea(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 22),
               child: Column(
                 children: [
-                  Align(
-                    alignment: Alignment.topRight,
-                    child: TextButton(
-                      onPressed: _isLoading ? null : _skip,
-                      style: TextButton.styleFrom(
-                        backgroundColor: isImagePage
-                            ? Colors.white.withOpacity(0.14)
-                            : Colors.white,
-                        foregroundColor: isImagePage
-                            ? Colors.white
-                            : const Color(0xFF0D1B3E),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 18,
-                          vertical: 10,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(24),
-                        ),
-                      ),
-                      child: const Text(
-                        'Skip',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                  ),
+                  _buildTopActions(),
                   const Spacer(),
                   _buildDotsIndicator(),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 18),
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
@@ -289,7 +383,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                               ),
                             )
                           : Text(
-                              _isLastPage ? 'Start Exploring' : 'Next',
+                              _isLastPage ? 'Start Exploring' : 'Continue',
                               style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w800,
@@ -299,6 +393,61 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   ),
                 ],
               ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _OnboardingItem {
+  final String title;
+  final String description;
+  final IconData icon;
+  final String? image;
+  final Color accentColor;
+
+  const _OnboardingItem({
+    required this.title,
+    required this.description,
+    required this.icon,
+    required this.accentColor,
+    this.image,
+  });
+}
+
+class _MiniFeatureChip extends StatelessWidget {
+  final IconData icon;
+  final String label;
+
+  const _MiniFeatureChip({required this.icon, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 14,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 17, color: const Color(0xFF1296DB)),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF0D1B3E),
             ),
           ),
         ],

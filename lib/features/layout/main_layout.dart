@@ -4,6 +4,7 @@ import 'package:travel_talk/features/home/presentation/screens/home_screen.dart'
 import 'package:travel_talk/features/home/presentation/widgets/custom_bottom_nav_bar.dart';
 import 'package:travel_talk/features/posts/presentation/screens/create_post_screen.dart';
 import 'package:travel_talk/features/profile/presentation/screens/profile_screen.dart';
+import 'package:travel_talk/features/trips/presentation/screens/trips_screen.dart';
 
 class MainLayout extends StatefulWidget {
   const MainLayout({super.key});
@@ -18,7 +19,7 @@ class _MainLayoutState extends State<MainLayout> {
   final List<Widget> screens = const [
     HomeScreen(),
     DiscoverScreen(),
-    Center(child: Text("Saved")),
+    TripsScreen(),
     ProfileScreen(),
   ];
 

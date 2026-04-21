@@ -15,8 +15,8 @@ class CustomBottomNavBar extends StatelessWidget {
   Widget build(BuildContext context) {
     const items = [
       Icons.home_rounded,
-      Icons.map_outlined,
-      Icons.bookmark_border_rounded,
+      Icons.explore_rounded,
+      Icons.luggage_rounded,
       Icons.person_outline_rounded,
     ];
 
