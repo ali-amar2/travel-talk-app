@@ -1,17 +1,32 @@
-# travel_talk
+# Travel Talk
 
-A new Flutter project.
+Travel Talk is a Flutter-based travel community app designed to help users discover destinations in Egypt, share travel experiences, and plan trips with other travelers.
 
-## Getting Started
+The app combines destination discovery, community posts, user profiles, trip planning, and join-request management in one clean and modern mobile experience. Users can create posts with images and categories, like posts, manage their profiles, explore popular cities and travel vibes, and create public trips that other users can request to join.
 
-This project is a starting point for a Flutter application.
+## Features
 
-A few resources to get you started if this is your first Flutter project:
+- User authentication with Firebase
+- Create and share travel posts
+- Upload post and profile images using Supabase Storage
+- Discover popular Egyptian cities and recommended places
+- Filter community posts by travel categories
+- Like and unlike posts
+- View liked posts in the user profile
+- Edit and delete personal posts
+- Create and manage planned trips
+- Request to join trips created by other users
+- Accept or reject trip join requests
+- Clean and responsive Flutter UI
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+## Tech Stack
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+- Flutter
+- Dart
+- Firebase Authentication
+- Cloud Firestore
+- Supabase Storage
+
+## Project Goal
+
+The goal of Travel Talk is to provide travelers with a social and practical platform where they can explore Egypt, share their experiences, and connect with others through planned trips and travel communities.
